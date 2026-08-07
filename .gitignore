@@ -1,0 +1,34 @@
+# Secrete — cheia API nu ajunge niciodată în repo
+.env
+.env.local
+
+# Snapshot-uri generate de scraper
+backend/data/
+
+# Documente de lucru și livrabile pentru clinică — rămân pe disc, nu în repo.
+# Nu sunt documentație de proiect: conțin estimări comerciale, un raport de
+# audit punctual, un runbook operațional cu date de cont și un text juridic
+# care, publicat, ar putea fi confundat cu politica reală a clinicii.
+/AUDIT.md
+/docs/COSTURI.md
+/docs/PREDARE.md
+/docs/CONFIDENTIALITATE.md
+
+# Configurație locală de unealtă, cu căi de pe calculatorul dezvoltatorului
+/.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Editoare / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test widget — Clinica Primera</title>
+  <!-- Montserrat, ca pe site-ul real: verificăm că fontul ajunge în shadow DOM. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 40px 20px;
+           line-height: 1.6; color: #222; }
+    main { max-width: 640px; margin: 0 auto; }
+    code { background: #f0f0f2; padding: 2px 6px; border-radius: 4px; }
+    /* Stiluri agresive, ca pe Squarespace: dacă widget-ul nu ar fi în shadow
+       DOM, regulile astea l-ar strica. */
+    button { background: hotpink !important; border-radius: 0 !important; }
+    p { font-size: 20px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Pagină de test pentru widget</h1>
+    <p>
+      Deschide <code>http://localhost:8000/widget/demo.html</code>.
+      Butonul de chat trebuie să apară în dreapta-jos și să NU fie roz —
+      dacă e roz, shadow DOM-ul nu funcționează.
+    </p>
+    <p>
+      Pentru test pe telefon: pornește serverul cu
+      <code>--host 0.0.0.0</code> și deschide
+      <code>http://IP-UL-CALCULATORULUI:8000/widget/demo.html</code>
+      de pe telefon, conectat la aceeași rețea Wi-Fi.
+    </p>
+    <p>De verificat pe telefon: tastatura nu acoperă câmpul de scris, panoul
+      încape pe ecran, cele patru butoane sugerate se apasă ușor cu degetul.</p>
+  </main>
+
+  <!-- Fără data-api-url intenționat: widget-ul deduce adresa din originea
+       scriptului, deci pagina merge identic pe localhost și pe IP-ul din LAN
+       când o deschizi de pe telefon. În producție, snippet-ul o scrie explicit. -->
+  <!-- Fără data-accent/data-font: valorile implicite SUNT tokenurile de brand
+       ale clinicii (#05534E, Montserrat), citite din CSS-ul site-ului. -->
+  <script
+    src="/widget/widget.js"
+    data-title="Asistent Clinica Primera"
+    data-lang="ro"
+    defer></script>
+</body>
+</html>
