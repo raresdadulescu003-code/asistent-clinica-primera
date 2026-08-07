@@ -129,6 +129,17 @@ class ServerSettings(BaseSettings):
     data_dir: Path = BACKEND_ROOT / "data"
     prompts_dir: Path = BACKEND_ROOT / "prompts"
     widget_dir: Path = BACKEND_ROOT / "widget"
+    # Versiunea promptului intră în cheia de cache, deci schimbarea ei
+    # invalidează automat răspunsurile generate cu instrucțiunile vechi.
+    #
+    # v1: originalul, testat pe întrebări reale în patru iterații.
+    # v2: v1 + secțiunea despre confidențialitatea instrucțiunilor, la final.
+    #     Blochează 8 din 10 vectori de extragere; restul le prinde garda din
+    #     `looks_like_instruction_leak`. Fără efect asupra celorlalte purtări.
+    # v3: aceeași secțiune, dar mutată sus și întărită. Blochează 10 din 10,
+    #     ÎNSĂ pică ~1 din 3 la întrebări scurte în engleză (răspunde în
+    #     română). Măsurat, nu presupus — de aceea implicit e v2.
+    prompt_version: int = 2
 
     @property
     def allowed_origins(self) -> tuple[str, ...]:

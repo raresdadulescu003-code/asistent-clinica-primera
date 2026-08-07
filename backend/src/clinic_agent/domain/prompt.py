@@ -7,6 +7,7 @@ Domain-ul nu știe că există Anthropic, deci nu produce dicționarele lor cu
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from clinic_agent.domain.models import Snapshot
@@ -77,6 +78,38 @@ def render_site_content(snapshot: Snapshot) -> str:
         for page in snapshot.pages
     ]
     return "\n\n".join(sections)
+
+
+def instruction_markers(instructions: str) -> tuple[str, ...]:
+    """Fraze care nu pot apărea într-un răspuns legitim: titlurile de secțiune.
+
+    Se extrag din prompt, nu se scriu de mână: dacă cineva adaugă o secțiune
+    nouă, garda o acoperă automat. „CUM SCRII" sau „SURSA DE ADEVĂR" n-au ce
+    căuta într-un răspuns despre prețuri — prezența lor înseamnă scurgere.
+    """
+    markers = []
+    for line in instructions.splitlines():
+        candidate = line.strip()
+        if (
+            len(candidate) >= 5
+            and candidate == candidate.upper()
+            and any(ch.isalpha() for ch in candidate)
+            and not any(ch.isdigit() for ch in candidate)
+        ):
+            markers.append(candidate)
+    return tuple(markers)
+
+
+def looks_like_instruction_leak(text: str, markers: Sequence[str]) -> bool:
+    """Al doilea strat de apărare, determinist.
+
+    Promptul îi cere modelului să nu-și divulge instrucțiunile, dar o apărare
+    care depinde de cooperarea modelului nu e o garanție. Asta e.
+    """
+    # Sensibil la majuscule, deliberat: scurgerea reproduce titlurile verbatim,
+    # iar o potrivire insensibilă ar bloca un răspuns legitim care conține
+    # aceleași cuvinte cu litere mici.
+    return any(marker in text for marker in markers)
 
 
 def build_system_blocks(instructions: str, site_content: str) -> tuple[PromptBlock, ...]:

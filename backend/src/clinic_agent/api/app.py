@@ -58,7 +58,9 @@ def create_app(
         contact=settings.clinic.contact,
         phone=settings.clinic.phone,
     )
-    template = load_prompt_template(settings.server.prompts_dir)
+    template = load_prompt_template(
+        settings.server.prompts_dir, version=settings.server.prompt_version
+    )
 
     llm = llm or AnthropicLLM(
         api_key=settings.anthropic.api_key,

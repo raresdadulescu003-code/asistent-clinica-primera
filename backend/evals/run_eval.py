@@ -208,8 +208,13 @@ async def main() -> int:
         repo=FileKnowledgeRepo(settings.server.data_dir),
         llm=llm,
         clinic=clinic,
-        template=load_prompt_template(settings.server.prompts_dir),
+        # Aceeași versiune de prompt pe care o folosește aplicația: altfel
+        # evaluezi altceva decât rulează în producție.
+        template=load_prompt_template(
+            settings.server.prompts_dir, version=settings.server.prompt_version
+        ),
     )
+    print(f"Prompt: v{settings.server.prompt_version}")
     if not knowledge.has_content:
         print("Fără snapshot pe disc — rulez un scraping...")
         await knowledge.refresh()
@@ -217,8 +222,15 @@ async def main() -> int:
 
     # `python evals/run_eval.py simptome` rulează doar cazurile al căror nume
     # conține argumentul — util când depanezi unul singur, fără să plătești 15.
-    needle = sys.argv[1].lower() if len(sys.argv) > 1 else ""
-    cases = [c for c in CASES if needle in c.name.lower()]
+    def flat(text: str) -> str:
+        import unicodedata
+
+        decomposed = unicodedata.normalize("NFD", text.lower())
+        return "".join(c for c in decomposed if not unicodedata.combining(c))
+
+    # Fără diacritice: „engleza" trebuie să găsească „întrebare în engleză".
+    needle = flat(sys.argv[1]) if len(sys.argv) > 1 else ""
+    cases = [c for c in CASES if needle in flat(c.name)]
     if not cases:
         print(f"Niciun caz nu se potrivește cu {needle!r}")
         return 2

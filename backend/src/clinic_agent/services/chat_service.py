@@ -9,12 +9,18 @@ from clinic_agent.domain.language import detect_language
 from clinic_agent.domain.models import ChatTurn, is_opening_question, last_user_message
 from clinic_agent.domain.normalization import response_cache_key
 from clinic_agent.domain.offtopic import fallback_reply, is_offtopic, offtopic_reply
+from clinic_agent.domain.prompt import looks_like_instruction_leak
 from clinic_agent.ports.llm import LLMError, LLMPort
 from clinic_agent.ports.rate_limiter import RateLimiterPort, Window
 from clinic_agent.ports.response_cache import ResponseCachePort
 from clinic_agent.services.knowledge_service import KnowledgeService
 
 logger = logging.getLogger(__name__)
+
+LEAK_REFUSAL = {
+    "ro": "\n\nSunt asistentul informațional al Clinicii Primera. Cu ce te pot ajuta?",
+    "en": "\n\nI'm the information assistant for Clinica Primera. How can I help?",
+}
 
 
 class ChatError(Exception):
@@ -117,11 +123,23 @@ class ChatService:
         self, turns: Sequence[ChatTurn], question: str, cache_key: str | None
     ) -> AsyncIterator[str]:
         collected: list[str] = []
+        markers = self._knowledge.instruction_markers
+
         try:
             async for chunk in self._llm.stream_reply(
                 system=self._knowledge.system_blocks, turns=turns
             ):
                 collected.append(chunk)
+                # Verificăm ÎNAINTE de a trimite bucata. Prima potrivire oprește
+                # fluxul, deci regulile nu ies niciodată. Ce a apucat să plece
+                # e cel mult propoziția de rol, care oricum nu e secretă.
+                #
+                # Nu tamponăm începutul: răspunsurile au două-trei propoziții,
+                # deci o fereastră de verificare le-ar transforma pe aproape
+                # toate într-un singur bloc și ar anula streaming-ul.
+                if looks_like_instruction_leak("".join(collected), markers):
+                    yield self._leak_refusal(question)
+                    return
                 yield chunk
         except Exception as exc:  # noqa: BLE001
             # Deliberat larg. Orice cădere — model, rețea, un bug de-al nostru —
@@ -135,11 +153,22 @@ class ChatService:
             yield ("\n\n" if collected else "") + message
             return
 
+        if looks_like_instruction_leak("".join(collected), markers):
+            return  # nu memorăm un răspuns care conține instrucțiuni
+
         if cache_key is not None:
             # Cheia conține amprenta conținutului cu care s-a generat răspunsul.
             # O cerere pornită înainte de un re-scraping scrie sub o cheie
             # veche, pe care nimeni nu o mai citește — cursa e inofensivă.
             self._cache.set(cache_key, "".join(collected))
+
+
+    def _leak_refusal(self, question: str) -> str:
+        logger.error(
+            "răspunsul modelului conținea instrucțiunile de sistem — blocat "
+            "înainte de a ajunge la vizitator"
+        )
+        return LEAK_REFUSAL[detect_language(question)]
 
 
 async def _once(text: str) -> AsyncIterator[str]:

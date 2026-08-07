@@ -19,6 +19,7 @@ from clinic_agent.domain.prompt import (
     PromptBlock,
     PromptTemplate,
     build_system_blocks,
+    instruction_markers,
     render_instructions,
     render_site_content,
 )
@@ -67,6 +68,7 @@ class KnowledgeService:
         self._clock = clock
 
         self._instructions = render_instructions(template, clinic)
+        self._markers = instruction_markers(self._instructions)
         self._snapshot: Snapshot | None = repo.load()
         self._blocks: tuple[PromptBlock, ...] = ()
         self._consecutive_failures = 0
@@ -96,6 +98,11 @@ class KnowledgeService:
     @property
     def has_content(self) -> bool:
         return self._snapshot is not None and not self._snapshot.is_empty
+
+    @property
+    def instruction_markers(self) -> tuple[str, ...]:
+        """Titlurile de secțiune din prompt, pentru garda anti-scurgere."""
+        return self._markers
 
     @property
     def system_blocks(self) -> tuple[PromptBlock, ...]:
